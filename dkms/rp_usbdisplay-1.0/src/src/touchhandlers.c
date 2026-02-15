@@ -15,6 +15,7 @@
 
 #include "inc/common.h"
 #include "inc/touchhandlers.h"
+#include <linux/version.h>
 #include "inc/usbhandlers.h"
 
 static struct input_dev * _default_input_dev;
@@ -28,9 +29,10 @@ static int _on_create_input_dev(struct input_dev ** inputdev)
         return -ENOMEM;
     }
 
-    (*inputdev)->evbit[0] = BIT(EV_SYN) | BIT(EV_KEY) | BIT(EV_ABS);  
-    
-    (*inputdev)->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);  
+    input_set_capability(*inputdev, EV_KEY, BTN_TOUCH);
+    input_set_capability(*inputdev, EV_ABS, ABS_X);
+    input_set_capability(*inputdev, EV_ABS, ABS_Y);
+    input_set_capability(*inputdev, EV_ABS, ABS_PRESSURE);
 
 
     input_set_abs_params((*inputdev), ABS_X, 0, RP_DISP_DEFAULT_WIDTH, 0, 0);

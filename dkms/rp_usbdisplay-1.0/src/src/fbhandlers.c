@@ -15,6 +15,7 @@
 #include "inc/common.h"
 #include "inc/fbhandlers.h"
 #include "inc/usbhandlers.h"
+#include <linux/version.h>
 
 static struct fb_info * _default_fb;
 
@@ -264,7 +265,11 @@ static void _display_defio_handler(struct fb_info *info,
     struct rpusbdisp_fb_private * pa = _get_fb_private(info);
     if (!pa->binded_usbdev) return; //simply ignore it 
     
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+    list_for_each_entry(cur, &fbdefio->pagereflist, lru) {
+#else
     list_for_each_entry(cur, &fbdefio->pagelist, lru) {
+#endif
 
         // convert page range to dirty box
         page_start = (cur->index<<PAGE_SHIFT);
@@ -300,7 +305,6 @@ static  struct fb_ops _display_fbops /*__devinitdata*/ = {
 static void *rvmalloc(unsigned long size)
 {
 	void *mem;
-	unsigned long adr;
 
 	size = PAGE_ALIGN(size);
 	mem = vmalloc_32(size);
@@ -308,29 +312,13 @@ static void *rvmalloc(unsigned long size)
 		return NULL;
 
 	memset(mem, 0, size); /* Clear the ram out, no junk to the user */
-	adr = (unsigned long) mem;
-	while (size > 0) {
-		SetPageReserved(vmalloc_to_page((void *)adr));
-		adr += PAGE_SIZE;
-		size -= PAGE_SIZE;
-	}
-
 	return mem;
 }
 
 static void rvfree(void *mem, unsigned long size)
 {
-	unsigned long adr;
-
 	if (!mem)
 		return;
-
-	adr = (unsigned long) mem;
-	while ((long) size > 0) {
-		ClearPageReserved(vmalloc_to_page((void *)adr));
-		adr += PAGE_SIZE;
-		size -= PAGE_SIZE;
-	}
 	vfree(mem);
 }
 
@@ -372,7 +360,11 @@ static int _on_create_new_fb(struct fb_info ** out_fb, struct rpusbdisp_dev *dev
 
 
     fb->fbops       = &_display_fbops;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+    fb->flags       = FBINFO_VIRTFB;
+#else
     fb->flags       = FBINFO_DEFAULT | FBINFO_VIRTFB;
+#endif
     
     fbmem_size = _var_info.yres * _vfb_fix.line_length; // Correct issue with size allocation (too big)
     fbmem =  rvmalloc(fbmem_size);

@@ -34,6 +34,7 @@
 #include <linux/vmalloc.h>
 #include <linux/input.h>
 #include <linux/wait.h>
+#include <linux/version.h>
 
 #include "types.h"
 #include "drvconf.h"
@@ -48,13 +49,11 @@ extern int fps;
 
 struct rpusbdisp_dev;
 
-#ifndef err
-#define err(format,arg...) printk(KERN_ERR format, ## arg)
-#endif
+#undef err
+#define err(format,arg...) pr_err(format, ## arg)
 
-#ifndef info
-#define info(format,arg...) printk(KERN_ERR format, ## arg)
-#endif
+#undef info
+#define info(format,arg...) pr_info(format, ## arg)
 
 
 #endif

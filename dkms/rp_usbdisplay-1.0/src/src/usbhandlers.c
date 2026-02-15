@@ -15,6 +15,7 @@
 #include "inc/usbhandlers.h"
 #include "inc/fbhandlers.h"
 #include "inc/touchhandlers.h"
+#include <linux/version.h>
 
 #define DL_ALIGN_UP(x, a) ALIGN(x, a)
 #define DL_ALIGN_DOWN(x, a) ALIGN(x-(a-1), a)
@@ -290,15 +291,19 @@ static void _status_start_querying(struct rpusbdisp_dev * dev)
         return;
     }
 
-    pipe = usb_rcvintpipe(dev->udev, dev->status_in_ep_addr);
+	pipe = usb_rcvintpipe(dev->udev, dev->status_in_ep_addr);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
     ep = usb_pipe_endpoint(dev->udev, pipe);
+#else
+    ep = usb_pipe_endpoint(dev->udev, pipe);
+#endif
 
     if (!ep) return;
 
 
     usb_fill_int_urb(dev->urb_status_query, dev->udev, pipe, dev->status_in_buffer, RPUSBDISP_STATUS_BUFFER_SIZE,
-				_on_status_query_finished, dev,
-				ep->desc.bInterval);
+					_on_status_query_finished, dev,
+					ep->desc.bInterval);
     
     //submit it
     status = usb_submit_urb(dev->urb_status_query, GFP_ATOMIC);
@@ -932,7 +937,7 @@ static int _on_alloc_disp_tickets_pool(struct rpusbdisp_dev * dev)
     dev->disp_tickets_pool.disp_urb_count = actual_allocated;
     dev->disp_tickets_pool.availiable_count = actual_allocated;
     dev->disp_tickets_pool.packet_size_factor = packet_size_factor;
-    dev_info(&dev->interface->dev, "allocated %d urb tickets for transfering display data. %lu size each\n", actual_allocated, ticket_logic_size);
+    dev_info(&dev->interface->dev, "allocated %d urb tickets for transfering display data. %zu size each\n", actual_allocated, ticket_logic_size);
 
     return actual_allocated?0:-ENOMEM;
 };
