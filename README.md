@@ -1,7 +1,7 @@
 
 # RoboPeak/DFRobot 2.8" USB TFT Driver
 
-This repository is made for Linux 6.x,I don't know if it work on older version(likes 5.x).  
+This repository is made for Linux 6.x,I don't know if it work on older version.  
 only knows 6.x has changed for framebuffer things and this source can work on it.
 
 as you know, the old repository(pimoroni or robopeak) can't work anymore.  
@@ -16,21 +16,49 @@ AI(Manus)
 https://manus.im/
 
 
-I only tested on Raspberry Pi Zero W (armv6l + Linux 6.12.62)  
-and screen work, but touchscreen doest test yet.
+I tested on Raspberry Pi Zero W (armv6l + Linux 6.12.62)  
+and screen work, but touchscreen doest test yet.  
+also tested on Radxa A7A (aarch64 + 5.15.147) as screen display  
+(but only this time for this old kernel)
+
 
 ## Build and Install
-  
-```bash
-// TODO list the steps
 
-```
+0.  Clone and enter to building path：
+    ```bash
+    git clone https://github.com/sunglee42/rp_usbdisplay_linux6x.git
+    cd rp_usbdisplay_linux6x/dkms-rp_usbdisplay-2.0
+    ```
+1.  Copy this path to `/usr/src/rp_usbdisplay-2.0`：
+    ```bash
+    sudo cp -r . /usr/src/rp_usbdisplay-2.0
+    ```
+2.  Using DKMS Add、Build and Install：
+    ```bash
+    sudo dkms add -m rp_usbdisplay -v 2.0
+    sudo dkms build -m rp_usbdisplay -v 2.0
+    sudo dkms install -m rp_usbdisplay -v 2.0
+    ```
 
 ## Simple Test
-  
-```bash
-// TODO show logo on screen
+will load driver module and display somethings on screen...  
 
+1. Load the module just build (should be black screen after this)
+```bash
+sudo depmod
+modprobe rp_usbdisplay
+```
+2. Check which framebuffer using (normally it will be fb1)
+```bash
+cat /proc/fb | grep rpusbdisp-fb
+```
+3. Load the noise screen
+```bash
+cat /dev/urandom > /dev/fb1
+```
+4. Load Pimoroni logo
+```bash
+zcat shoplogo.fb.gz > /dev/fb1
 ```
 
 ## Extra
