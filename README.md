@@ -1,48 +1,38 @@
+
 # RoboPeak/DFRobot 2.8" USB TFT Driver
 
-This is an unmodified compiled, packaged, easy-to-install distribution of the official RoboPeak Mini Display Display driver. It's intended to run on Raspbian Jessie or Wheezy on the Raspberry Pi, and has been compiled for various different kernel versions.
+This repository is made for Linux 6.x,I don't know if it work on older version(likes 5.x).
+only knows 6.x has changed for framebuffer things and this source can work on it.
 
-You can find the original source code, and raise issues at https://github.com/robopeak/rpusbdisp
+as you know, the old repository(pimoroni or robopeak) can't work anymore. so I modified and cleaned pimoroni's version using AI, now it can work on 6.x.
 
-Before installing, make sure you're up to date:
+Manufacturer's repository
+https://github.com/robopeak/rpusbdisp
+Retailer's repositoryY
+https://github.com/pimoroni/rp_usbdisplay
+AI(Manus)
+https://manus.im/
 
+I only test on Raspberry Pi Zero W (armv6l + Linux 6.12.62)
+and screen work, but touchscreen doest test yet.
+
+## Build and Install
+  
 ```bash
-sudo apt-get update
-sudo apt-get upgrade
-sudo reboot
+// TODO
+
 ```
 
-## Installing
-
+## Simple Test
+  
 ```bash
-git clone http://github.com/pimoroni/rp_usbdisplay
-cd rp_usbdisplay
-./install.sh
+// TODO
+
 ```
 
-Unless you're okay with starting it up manually ( `sudo modprobe rp_usbdisplay` ) You'll also have to make sure that rp_usbdisplay starts automatically by editing `/etc/modules` and adding the line:
-
+## Extra
+  
 ```bash
-rp_usbdisplay
+// TODO
+
 ```
-
-## Manually
-
-Clone this repo.
-
-Where `<kernel_version>` is the version of your kernel returned by `uname -a`
-
-Copy `drivers/<kernel_version>/rp_usbdisplay.ko` to `/lib/modules/<kernel_version>/kernel/drivers/video/`
-Copy `drivers/<kernel_version>-v7+/rp_usbdisplay.ko` to `/lib/modules/<kernel_version>-v7+/kernel/drivers/video/`
-
-Run `sudo depmod`
-
-Then `modprobe rp_usbdisplay`
-
-Your USB display is now installed and should appear as `/dev/fb1`
-
-The display should go black. Test with: `cat /dev/urandom > /dev/fb1`
-
-## Boot X Desktop On USB Display
-
-Although you'll get little use out of your desktop on the USB display, we've included the configuration file which will get it running. See [/extra](/extra) for more information.
