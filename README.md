@@ -1,12 +1,15 @@
 
 # RoboPeak/DFRobot 2.8" USB TFT Driver
 
-This repository is made for Linux 6.x,I don't know if it work on older version.  
+This repository is made for Linux 6.12, I don't know if it work on older version.  
 only knows 6.x has changed for framebuffer things and this source can work on it.
 
-as you know, the old repository(pimoroni or robopeak) can't work anymore.  
-so I modified and cleaned pimoroni's version using AI, now it can work on 6.x.
+As you know, the old repository(pimoroni or robopeak) can't work anymore.  
+so I modified and cleaned pimoroni's version using AI, now it can work on 6.12.
 
+According to subsequent confirmation, this version of code will only work until 6.12.  
+6.13+ will change things again, need to fixed for work.  
+I might do it later...
 
 Manufacturer's repository  
 https://github.com/robopeak/rpusbdisp  
@@ -65,5 +68,5 @@ zcat shoplogo.fb.gz > /dev/fb1
   
 ```bash
 // TODO Xorg or Console things...
-
+// TODO will try on Linux 6.17 with x86 architecture
 ```
