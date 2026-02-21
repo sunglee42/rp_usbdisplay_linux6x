@@ -5,11 +5,7 @@ This repository is made for Linux 6.12, I don't know if it work on older version
 only knows 6.x has changed for framebuffer things and this source can work on it.
 
 As you know, the old repository(pimoroni or robopeak) can't work anymore.  
-so I modified and cleaned pimoroni's version using AI, now it can work on 6.12.
-
-According to subsequent confirmation, this version of code will only work until 6.12.  
-6.13+ will change things again, need to fixed for work.  
-I might do it later...
+so I modified and cleaned pimoroni's version using AI, now it can work on 6.12 or 6.13+. 
 
 Manufacturer's repository  
 https://github.com/robopeak/rpusbdisp  
@@ -19,24 +15,27 @@ AI(Manus)
 https://manus.im/
 
 
-I tested on Raspberry Pi Zero W (armv6l + Linux 6.12.62)  
-and screen work, but touchscreen doest test yet.  
+I tested on Raspberry Pi Zero W (armv6l, Raspberry Pi OS, Linux 6.12.62)  
+and x86 machine (Ubuntu 24.04.4 LTS, Linux  6.17.0)  
+their screen both work, but touchscreen doest test yet.  
 also tested on Radxa A7A (aarch64 + 5.15.147) as screen display  
 (but only this time for this old kernel)
 
 
 ## Build and Install
-
-0.  Clone and enter to building path：
+- Please decide based on the Linux version you are using (we do 2.0 here)
+    - 6.12 below, use version 2.0
+    - 6.13+, use version 3.0
+1.  Clone and enter to building path：
     ```bash
     git clone https://github.com/sunglee42/rp_usbdisplay_linux6x.git
     cd rp_usbdisplay_linux6x/dkms-rp_usbdisplay-2.0
     ```
-1.  Copy this path to `/usr/src/rp_usbdisplay-2.0`：
+2.  Copy this path to `/usr/src/rp_usbdisplay-2.0`：
     ```bash
     sudo cp -r . /usr/src/rp_usbdisplay-2.0
     ```
-2.  Using DKMS Add、Build and Install：
+3.  Using DKMS Add、Build and Install：
     ```bash
     sudo dkms add -m rp_usbdisplay -v 2.0
     sudo dkms build -m rp_usbdisplay -v 2.0
@@ -83,10 +82,10 @@ echo rp_usbdisplay | sudo tee -a /etc/modules
   
 - TODO   
 > Xorg or Console things...  
-> TODO will try on Linux 6.17 with x86 architecture  
 
 - [X] Module compiled (Linux 6.17, x86)
 - [X] Module install and load
 - [X] Screen Work well
 - [ ] Work with Xorg
 - [ ] Work with Console
+- [ ] Review what AI done
