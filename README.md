@@ -64,9 +64,22 @@ cat /dev/urandom > /dev/fb1
 zcat shoplogo.fb.gz > /dev/fb1
 ```
 
+Alternative methods (specify screen size: 320x240, 16 bit)
+```bash
+// noise screen
+sudo dd if=/dev/urandom of=/dev/fb0 bs=153600 count=1
+// black screen (clean)
+sudo dd if=/dev/zero of=/dev/fb0 bs=153600 count=1
+```
+
 ## Extra
   
 ```bash
 // TODO Xorg or Console things...
 // TODO will try on Linux 6.17 with x86 architecture
 ```
+- [X] Module compiled (Linux 6.17, x86)
+- [X] Module install and load
+- [ ] Screen Work well
+- [ ] Work with Xorg
+- [ ] Work with Console
