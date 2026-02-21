@@ -12,7 +12,9 @@ https://github.com/robopeak/rpusbdisp
 Retailer's repository  
 https://github.com/pimoroni/rp_usbdisplay  
 AI(Manus)  
-https://manus.im/
+https://manus.im/  
+AI(Google Antigravity)  
+https://antigravity.google/  
 
 
 I tested on Raspberry Pi Zero W (armv6l, Raspberry Pi OS, Linux 6.12.62)  
