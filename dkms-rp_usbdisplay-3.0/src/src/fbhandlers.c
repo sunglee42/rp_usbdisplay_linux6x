@@ -17,6 +17,10 @@
 #include "inc/usbhandlers.h"
 #include <linux/version.h>
 
+#ifndef FBINFO_DEFERRED_IO
+#define FBINFO_DEFERRED_IO 0x0000  /* Defined as 0 if missing in newer kernels */
+#endif
+
 static struct fb_info * _default_fb;
 
 struct dirty_rect {
@@ -217,8 +221,13 @@ static ssize_t _display_write ( struct fb_info * p, const  char * buf __user,
 }
 
 
+static int _display_mmap(struct fb_info *info, struct vm_area_struct *vma)
+{
+	return fb_deferred_io_mmap(info, vma);
+}
+
 static int _display_setcolreg(u_int regno, u_int red, u_int green, u_int blue,
-			 u_int transp, struct fb_info *info)
+				 u_int transp, struct fb_info *info)
 {
     #define CNVT_TOHW(val, width) ((((val) << (width)) +0x7FFF-(val)) >> 16)
     int ret = 1 ;
@@ -254,8 +263,10 @@ static int _display_setcolreg(u_int regno, u_int red, u_int green, u_int blue,
 
 
 static void _display_defio_handler(struct fb_info *info,
-				struct list_head *pagelist) {
+					struct list_head *pagelist) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0)
     struct page *cur;
+#endif
     struct fb_deferred_io *fbdefio = info->fbdefio;
     int top = RP_DISP_DEFAULT_HEIGHT, bottom = 0;
     int current_val;
@@ -266,13 +277,17 @@ static void _display_defio_handler(struct fb_info *info,
     if (!pa->binded_usbdev) return; //simply ignore it 
     
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
-    list_for_each_entry(cur, &fbdefio->pagereflist, lru) {
+    struct fb_deferred_io_pageref *pageref;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
+    list_for_each_entry(pageref, &fbdefio->pagereflist, list) {
+#else
+    list_for_each_entry(pageref, &fbdefio->pagereflist, lru) {
+#endif
+        page_start = pageref->offset;
 #else
     list_for_each_entry(cur, &fbdefio->pagelist, lru) {
-#endif
-
-        // convert page range to dirty box
         page_start = (cur->index<<PAGE_SHIFT);
+#endif
         
         if (page_start < info->fix.mmio_start && page_start >= info->fix.mmio_start + info->fix.smem_len) {
             continue;
@@ -287,10 +302,12 @@ static void _display_defio_handler(struct fb_info *info,
     }
     if (bottom >= RP_DISP_DEFAULT_HEIGHT) bottom = RP_DISP_DEFAULT_HEIGHT - 1;
 
-
-    _display_update(info, 0, top, info->var.width, bottom - top + 1, DISPLAY_UPDATE_HINT_NONE, NULL);
+    if (top <= bottom) {
+        _display_update(info, 0, top, info->var.width, bottom - top + 1, DISPLAY_UPDATE_HINT_NONE, NULL);
+    }
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
 static  struct fb_ops _display_fbops /*__devinitdata*/ = {
     .owner = THIS_MODULE,
     .fb_read = fb_sys_read,
@@ -299,7 +316,21 @@ static  struct fb_ops _display_fbops /*__devinitdata*/ = {
     .fb_copyarea =  _display_copyarea,
     .fb_imageblit = _display_imageblit,
     .fb_setcolreg = _display_setcolreg,
+    .fb_mmap =      _display_mmap,
+    FB_DEFAULT_IOMEM_OPS,
 };
+#else
+static  struct fb_ops _display_fbops /*__devinitdata*/ = {
+    .owner = THIS_MODULE,
+    .fb_read = fb_sys_read,
+    .fb_write =     _display_write,
+    .fb_fillrect =  _display_fillrect,
+    .fb_copyarea =  _display_copyarea,
+    .fb_imageblit = _display_imageblit,
+    .fb_setcolreg = _display_setcolreg,
+    .fb_mmap =      _display_mmap,
+};
+#endif
 
 
 static void *rvmalloc(unsigned long size)
@@ -348,7 +379,7 @@ static int _on_create_new_fb(struct fb_info ** out_fb, struct rpusbdisp_dev *dev
     *out_fb = NULL;
     
    
-    fb = framebuffer_alloc(sizeof(struct rpusbdisp_fb_private), NULL/*rpusbdisp_usb_get_devicehandle(dev)*/);
+    fb = framebuffer_alloc(sizeof(struct rpusbdisp_fb_private), dev ? rpusbdisp_usb_get_devicehandle(dev) : NULL);
     
     if (!fb) {
         err("Failed to initialize framebuffer device\n");
@@ -361,7 +392,7 @@ static int _on_create_new_fb(struct fb_info ** out_fb, struct rpusbdisp_dev *dev
 
     fb->fbops       = &_display_fbops;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
-    fb->flags       = FBINFO_VIRTFB;
+    fb->flags       = FBINFO_VIRTFB | FBINFO_DEFERRED_IO;
 #else
     fb->flags       = FBINFO_DEFAULT | FBINFO_VIRTFB;
 #endif
@@ -457,12 +488,18 @@ static void _on_release_fb(struct fb_info * fb)
 
 int __init register_fb_handlers(void)
 {
-    return _on_create_new_fb(&_default_fb, NULL);
+    // We no longer create a default FB at module init.
+    // Instead, we create it when a USB device is plugged in.
+    _default_fb = NULL;
+    return 0;
 }
 
 void unregister_fb_handlers(void)
 {
-    _on_release_fb(_default_fb);
+    if (_default_fb) {
+        _on_release_fb(_default_fb);
+        _default_fb = NULL;
+    }
 }
 
 
@@ -490,18 +527,28 @@ int fbhandler_on_new_device(struct rpusbdisp_dev * dev)
     
     mutex_lock(&_mutex_devreg);
 
-    // check whether the default fb has been binded
-    fb_pri = _get_fb_private(_default_fb);
-    if (!fb_pri->binded_usbdev) {
-        mutex_lock(&fb_pri->operation_lock);
+    if (!_default_fb) {
+        ans = _on_create_new_fb(&_default_fb, dev);
+        if (ans == 0) {
+            fb_pri = _get_fb_private(_default_fb);
+            mutex_lock(&fb_pri->operation_lock);
+            fb_pri->binded_usbdev = dev;
+            rpusbdisp_usb_set_fbhandle(dev, _default_fb);
+            mutex_unlock(&fb_pri->operation_lock);
+        }
+    } else {
+        // check whether the default fb has been binded
+        fb_pri = _get_fb_private(_default_fb);
+        if (!fb_pri->binded_usbdev) {
+            mutex_lock(&fb_pri->operation_lock);
 
-        // bind to the default framebuffer ( the only one)
-        fb_pri->binded_usbdev = dev;
-        rpusbdisp_usb_set_fbhandle(dev, _default_fb);
+            // bind to the default framebuffer ( the only one)
+            fb_pri->binded_usbdev = dev;
+            rpusbdisp_usb_set_fbhandle(dev, _default_fb);
 
-
-        ans = 0; 
-        mutex_unlock(&fb_pri->operation_lock);
+            ans = 0; 
+            mutex_unlock(&fb_pri->operation_lock);
+        }
     }
 
     mutex_unlock(&_mutex_devreg);
