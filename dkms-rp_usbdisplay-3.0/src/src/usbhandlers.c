@@ -252,6 +252,7 @@ static void _on_status_query_finished(struct urb *urb)
     switch (urb->status) {
         case 0:
             // succeed
+            dev->urb_status_fail_count = 0;
             // store the actual transfer size
             dev->status_in_buffer_recvsize = urb->actual_length;
             
@@ -260,11 +261,14 @@ static void _on_status_query_finished(struct urb *urb)
             // notify the waiters..
             wake_up(&dev->status_wait_queue);
             break;
+        case -ENOENT:
+        case -ECONNRESET:
+        case -ESHUTDOWN:
+            return;
         case -EPIPE:
           //  usb_clear_halt(dev->udev, usb_rcvintpipe(dev->udev, dev->status_in_ep_addr));
         default:
-            //++dev->urb_status_fail_count;
-            dev->urb_status_fail_count = RPUSBDISP_STATUS_QUERY_RETRY_COUNT;
+            ++dev->urb_status_fail_count;
     }
     
     if (dev->urb_status_fail_count < RPUSBDISP_STATUS_QUERY_RETRY_COUNT) {

@@ -119,7 +119,7 @@ static  void _display_update( struct fb_info *p, int x, int y, int width, int he
     if (!pa->binded_usbdev) goto final;
     // 1. update the dirty rect
     
-    if (atomic_dec_and_test(&pa->unsync_flag)) {
+    if (atomic_read(&pa->unsync_flag) > 0) {
         // force the dirty rect to cover the full display area if the display is not synced.
         pa->dirty_rect.left = 0;
         pa->dirty_rect.right = p->var.width-1;
@@ -127,6 +127,7 @@ static  void _display_update( struct fb_info *p, int x, int y, int width, int he
         pa->dirty_rect.bottom = p->var.height-1;
 
         clear_dirty = 1;
+        hint = DISPLAY_UPDATE_HINT_NONE;
     } else {
         
         if (pa->dirty_rect.top > y) pa->dirty_rect.top = y;
@@ -178,7 +179,9 @@ static  void _display_update( struct fb_info *p, int x, int y, int width, int he
                      clear_dirty)) {
                     // data sent, rect the dirty rect
                     _clear_dirty_rect(&pa->dirty_rect);
-
+                    if (clear_dirty) {
+                        atomic_set(&pa->unsync_flag, 0);
+                    }
                 } 
         }
 
@@ -307,19 +310,6 @@ static void _display_defio_handler(struct fb_info *info,
     }
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
-static  struct fb_ops _display_fbops /*__devinitdata*/ = {
-    .owner = THIS_MODULE,
-    .fb_read = fb_sys_read,
-    .fb_write =     _display_write,
-    .fb_fillrect =  _display_fillrect,
-    .fb_copyarea =  _display_copyarea,
-    .fb_imageblit = _display_imageblit,
-    .fb_setcolreg = _display_setcolreg,
-    .fb_mmap =      _display_mmap,
-    FB_DEFAULT_IOMEM_OPS,
-};
-#else
 static  struct fb_ops _display_fbops /*__devinitdata*/ = {
     .owner = THIS_MODULE,
     .fb_read = fb_sys_read,
@@ -330,7 +320,6 @@ static  struct fb_ops _display_fbops /*__devinitdata*/ = {
     .fb_setcolreg = _display_setcolreg,
     .fb_mmap =      _display_mmap,
 };
-#endif
 
 
 static void *rvmalloc(unsigned long size)

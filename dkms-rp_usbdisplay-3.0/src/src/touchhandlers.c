@@ -23,9 +23,10 @@ static volatile int _live_flag;
 
 static int _on_create_input_dev(struct input_dev ** inputdev)
 {
+    int ret;
     *inputdev = input_allocate_device();
 
-    if (!inputdev) {
+    if (!*inputdev) {
         return -ENOMEM;
     }
 
@@ -42,7 +43,12 @@ static int _on_create_input_dev(struct input_dev ** inputdev)
     (*inputdev)->name = "RoboPeakUSBDisplayTS";
     (*inputdev)->id.bustype    = BUS_USB;
 
-    return input_register_device((*inputdev));
+    ret = input_register_device((*inputdev));
+    if (ret) {
+        input_free_device(*inputdev);
+        *inputdev = NULL;
+    }
+    return ret;
 }
 
 static void _on_release_input_dev(struct input_dev * inputdev)

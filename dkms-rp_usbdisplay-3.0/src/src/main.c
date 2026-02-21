@@ -60,31 +60,31 @@ static int __init usb_disp_init(void)
 #endif
         }
 
-    do {
-	    
-        result = register_touch_handler();
-	    if (result) {
-		    err("touch_handler failed. Error number %d", result);
-            break;
-        }        
+    result = register_touch_handler();
+    if (result) {
+        err("touch_handler failed. Error number %d", result);
+        return result;
+    }        
 
-        result = register_fb_handlers();
-        if (result) {
-            err("fb handler register failed. Error number %d", result);
-            break;
-        }
+    result = register_fb_handlers();
+    if (result) {
+        err("fb handler register failed. Error number %d", result);
+        goto err_fb;
+    }
 
-        result = register_usb_handlers();
-	    if (result) {
-		    err("usb_register failed. Error number %d", result);
-            break;
-        }
+    result = register_usb_handlers();
+    if (result) {
+        err("usb_register failed. Error number %d", result);
+        goto err_usb;
+    }
 
+    return 0;
 
-
-    }while(0);
-
-	return result;
+err_usb:
+    unregister_fb_handlers();
+err_fb:
+    unregister_touch_handler();
+    return result;
 }
 
 
