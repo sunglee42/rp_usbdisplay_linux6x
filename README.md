@@ -51,7 +51,7 @@ will load driver module and display somethings on screen...
 sudo depmod
 modprobe rp_usbdisplay
 ```
-2. Check which framebuffer using (normally it will be fb1)
+2. Check which framebuffer using (normally it will be fb1, so we do fb1 here)
 ```bash
 cat /proc/fb | grep rpusbdisp-fb
 ```
@@ -64,9 +64,29 @@ cat /dev/urandom > /dev/fb1
 zcat shoplogo.fb.gz > /dev/fb1
 ```
 
-## Extra
   
+Alternative methods (specify screen size: 320x240, 16 bit)
+- noise screen
 ```bash
-// TODO Xorg or Console things...
-// TODO will try on Linux 6.17 with x86 architecture
+sudo dd if=/dev/urandom of=/dev/fb1 bs=153600 count=1
 ```
+-  black screen (clean)
+```bash
+sudo dd if=/dev/zero of=/dev/fb1 bs=153600 count=1
+```
+
+## Extra
+- Set dkms driver auto load on boot
+```bash
+echo rp_usbdisplay | sudo tee -a /etc/modules
+```
+  
+- TODO   
+> Xorg or Console things...  
+> TODO will try on Linux 6.17 with x86 architecture  
+
+- [X] Module compiled (Linux 6.17, x86)
+- [X] Module install and load
+- [X] Screen Work well
+- [ ] Work with Xorg
+- [ ] Work with Console
